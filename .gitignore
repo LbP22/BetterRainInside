@@ -1,0 +1,17 @@
+.gradle/
+build/
+out/
+run/
+*.log
+
+# Local toolchains and IDE caches
+.tools/
+.idea/
+.vscode/
+
+# Temporary extraction artifacts
+net/
+
+# OS files
+.DS_Store
+Thumbs.db
