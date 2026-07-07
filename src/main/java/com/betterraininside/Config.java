@@ -17,6 +17,11 @@ public final class Config {
     public float detectionSensitivity = 1.65f;
     public float roofedSpaceBoost = 0.2f;
 
+    // Door tuning.
+    public int doorScanRadius = 4;
+    public float doorProximityFalloff = 0.5f;
+    public float openDoorExposure = 0.65f;
+
     // Volume mapping tuning.
     public float indoorResponseCurve = 1.8f;
 
@@ -42,6 +47,9 @@ public final class Config {
         this.detectionSensitivity = clamp(this.detectionSensitivity, 0.5f, 3.0f);
         this.roofedSpaceBoost = clamp(this.roofedSpaceBoost, 0.0f, 0.5f);
         this.indoorResponseCurve = clamp(this.indoorResponseCurve, 0.5f, 3.0f);
+        this.doorScanRadius = clamp(this.doorScanRadius, 1, 8);
+        this.doorProximityFalloff = clamp(this.doorProximityFalloff, 0.05f, 2.0f);
+        this.openDoorExposure = clamp(this.openDoorExposure, 0.0f, 1.0f);
     }
 
     private static int clamp(int value, int min, int max) {

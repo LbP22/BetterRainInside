@@ -2,7 +2,13 @@ package com.betterraininside;
 
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.tags.BlockTags;
 import net.minecraft.world.level.ClipContext;
+import net.minecraft.world.level.block.DoorBlock;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.util.Mth;
@@ -44,6 +50,13 @@ public final class RainEnvironmentAnalyzer {
         // Caves and deep enclosed spaces should be much quieter than partial cover.
         if (roofCoverage > 0.85f && wallCoverage > 0.55f) {
             enclosure = Math.max(enclosure, 0.9f);
+        }
+
+        // An open door leading outside breaks the room's seal, no matter how solid
+        // the surrounding walls/roof look; a closed door leaves the seal intact.
+        float doorExposure = computeDoorExposure(world, player, config);
+        if (doorExposure > 0.0f) {
+            enclosure *= 1.0f - Mth.clamp(config.openDoorExposure * doorExposure, 0.0f, 1.0f);
         }
 
         enclosure = Mth.clamp(enclosure * config.detectionSensitivity, 0.0f, 1.0f);
@@ -104,5 +117,52 @@ public final class RainEnvironmentAnalyzer {
         }
 
         return (float) blocked / (float) WALL_DIRECTIONS.length;
+    }
+
+    private float computeDoorExposure(ClientLevel world, LocalPlayer player, Config config) {
+        final int radius = config.doorScanRadius;
+        final int baseX = Mth.floor(player.getX());
+        final int baseY = Mth.floor(player.getY());
+        final int baseZ = Mth.floor(player.getZ());
+
+        float exposure = 0.0f;
+        BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
+
+        for (int dx = -radius; dx <= radius; dx++) {
+            for (int dz = -radius; dz <= radius; dz++) {
+                int sampleX = baseX + dx;
+                int sampleZ = baseZ + dz;
+
+                if (!world.hasChunk(sampleX >> 4, sampleZ >> 4)) {
+                    continue;
+                }
+
+                // Doors are two blocks tall; scan a small vertical band around eye level.
+                for (int dy = -1; dy <= 2; dy++) {
+                    cursor.set(sampleX, baseY + dy, sampleZ);
+                    BlockState state = world.getBlockState(cursor);
+
+                    if (!state.is(BlockTags.DOORS) || state.getValue(DoorBlock.HALF) != DoubleBlockHalf.LOWER) {
+                        continue;
+                    }
+
+                    if (!state.getValue(DoorBlock.OPEN) || !leadsOutside(world, cursor, state.getValue(DoorBlock.FACING))) {
+                        continue;
+                    }
+
+                    float distSq = (dx * dx) + (dz * dz);
+                    float weight = 1.0f / (1.0f + (distSq * config.doorProximityFalloff));
+                    exposure = Math.max(exposure, weight);
+                }
+            }
+        }
+
+        return Mth.clamp(exposure, 0.0f, 1.0f);
+    }
+
+    private boolean leadsOutside(ClientLevel world, BlockPos doorPos, Direction facing) {
+        BlockPos front = doorPos.relative(facing);
+        BlockPos back = doorPos.relative(facing.getOpposite());
+        return world.canSeeSky(front) || world.canSeeSky(back);
     }
 }
