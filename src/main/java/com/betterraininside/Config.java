@@ -25,6 +25,10 @@ public final class Config {
     // Volume mapping tuning.
     public float indoorResponseCurve = 1.8f;
 
+    // Muffling tuning (low-pass filter applied to indoor rain).
+    public boolean muffleEnabled = true;
+    public float indoorMuffleStrength = 0.9f;
+
     public void sanitize() {
         this.minimumVolume = clamp(this.minimumVolume, 0.0f, 1.0f);
         this.maximumIndoorVolume = clamp(this.maximumIndoorVolume, this.minimumVolume, 1.0f);
@@ -50,6 +54,7 @@ public final class Config {
         this.doorScanRadius = clamp(this.doorScanRadius, 1, 8);
         this.doorProximityFalloff = clamp(this.doorProximityFalloff, 0.05f, 2.0f);
         this.openDoorExposure = clamp(this.openDoorExposure, 0.0f, 1.0f);
+        this.indoorMuffleStrength = clamp(this.indoorMuffleStrength, 0.0f, 1.0f);
     }
 
     private static int clamp(int value, int min, int max) {

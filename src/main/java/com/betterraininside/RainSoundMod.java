@@ -13,6 +13,8 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.sound.PlaySoundEvent;
+import net.neoforged.neoforge.client.event.sound.PlaySoundSourceEvent;
+import net.neoforged.neoforge.client.event.sound.PlayStreamingSourceEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,11 +24,13 @@ public final class RainSoundMod {
     public static final Logger LOGGER = LoggerFactory.getLogger("BetterRainInside");
 
     private static RainVolumeController volumeController;
+    private static RainLowPassEffect lowPassEffect;
 
     public RainSoundMod() {
         Config config = ConfigManager.loadOrCreate();
         RainEnvironmentAnalyzer analyzer = new RainEnvironmentAnalyzer();
-        volumeController = new RainVolumeController(config, analyzer);
+        lowPassEffect = new RainLowPassEffect();
+        volumeController = new RainVolumeController(config, analyzer, lowPassEffect);
 
         LOGGER.info("BetterRainInside initialized");
     }
@@ -59,6 +63,20 @@ public final class RainSoundMod {
             float multiplier = volumeController.applyRainVolume(sound.getLocation(), 1.0f);
             if (Math.abs(multiplier - 1.0f) > 0.0001f) {
                 event.setSound(new VolumeWrappedSoundInstance(sound, multiplier));
+            }
+        }
+
+        @SubscribeEvent
+        public static void onPlaySoundSource(PlaySoundSourceEvent event) {
+            if (lowPassEffect != null) {
+                lowPassEffect.onSoundSourceStarted(event.getEngine(), event.getSound(), event.getChannel());
+            }
+        }
+
+        @SubscribeEvent
+        public static void onPlayStreamingSource(PlayStreamingSourceEvent event) {
+            if (lowPassEffect != null) {
+                lowPassEffect.onSoundSourceStarted(event.getEngine(), event.getSound(), event.getChannel());
             }
         }
     }
